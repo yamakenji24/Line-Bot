@@ -3,15 +3,21 @@
 const express = require('express');
 const line = require('@line/bot-sdk');
 require('dotenv').config();
+const getToken = require('./getToken')
 const axios = require('axios');
 const PORT = process.env.PORT || 3000;
+var token = ''
+let result = getToken();
 
 const config = {
   channelSecret: process.env.channelSecret,
   channelAccessToken: process.env.channelAccessToken
 };
 
-const app = express();
+Promise.all([result])
+  .then((tmp) => mergeToken(tmp[0].access_token)) 
+
+const app = express()
 
 app.get('/', (req, res) => res.send('Hello LINE BOT!(GET)'));
 app.post('/webhook', line.middleware(config), (req, res) => {
@@ -23,6 +29,10 @@ app.post('/webhook', line.middleware(config), (req, res) => {
 
 const client = new line.Client(config);
 var artist_flag = false
+
+function mergeToken(token) {
+  config.channelAccessToken = token;
+}
 
 function handleEvent(event) {
   if (event.type !== 'message' || event.message.type !== 'text') {
@@ -71,7 +81,6 @@ const getArtistData = async(userId, artist) => {
       albums.push({type: 'text', text: item[data]["album"]});
     }
     albums.push({type: 'text', text: 'がレンタル済みです'})
-    console.log(albums)
     await client.pushMessage(userId, albums)
       .catch(error => {
         console.log(error)
